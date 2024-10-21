@@ -3,6 +3,7 @@
 #include "core/common/dmi.h"
 #include "iss.h"
 #include "mmu.h"
+#include "util/initator_ext.h"
 
 namespace rv64 {
 
@@ -40,10 +41,17 @@ struct CombinedMemoryInterface : public sc_core::sc_module,
 	sc_core::sc_time dmi_access_delay = clock_cycle * 4;
 	std::vector<MemoryDMI> dmi_ranges;
 
+	tlm::tlm_generic_payload trans;
+	initiator_ext *ext;
+
 	MMU *mmu;
 
 	CombinedMemoryInterface(sc_core::sc_module_name, ISS &owner, MMU *mmu = nullptr)
-	    : iss(owner), quantum_keeper(iss.quantum_keeper), mmu(mmu) {}
+	    : iss(owner), quantum_keeper(iss.quantum_keeper), mmu(mmu) {
+		ext = new initiator_ext(&owner);  // tlm_generic_payload frees all extension objects in destructor, therefore
+		                                  // dynamic allocation is needed
+		trans.set_extension<initiator_ext>(ext);
+	}
 
 	uint64_t v2p(uint64_t vaddr, MemoryAccessType type) override {
 		if (mmu == nullptr)
