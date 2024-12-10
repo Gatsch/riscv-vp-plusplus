@@ -74,8 +74,6 @@ class BasicOptions : public Options {
 
 	bool quiet = false;
 	bool use_E_base_isa = false;
-	bool debug_bus = false;
-	unsigned debug_bus_port = 5006;
 
 	OptionValue<unsigned long> entry_point;
 
