@@ -44,7 +44,6 @@ std::string DebugMemoryInterface::read_memory(uint64_t start, unsigned nbytes) {
 	std::vector<uint8_t> buf(nbytes);  // NOTE: every element is zero-initialized by default
 
 	unsigned nbytes_read = _do_dbg_transaction(tlm::TLM_READ_COMMAND, start, buf.data(), buf.size());
-	assert(nbytes_read == nbytes && "not all bytes read");
 
 	std::stringstream stream;
 	stream << std::setfill('0') << std::hex;
