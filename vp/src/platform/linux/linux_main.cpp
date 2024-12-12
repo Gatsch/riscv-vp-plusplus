@@ -174,12 +174,7 @@ int sc_main(int argc, char **argv) {
 	SimpleMemory mem("SimpleMemory", opt.mem_size);
 	SimpleMemory dtb_rom("DBT_ROM", opt.dtb_rom_size);
 	ELFLoader loader(opt.input_program.c_str());
-	NetTrace *bus_trace = NULL;
-	if (opt.trace_bus) {
-		NetTrace trace = NetTrace(opt.trace_bus_port);
-		bus_trace = &trace;
-	}
-	SimpleBus<NUM_CORES + 1, 14> bus("SimpleBus", bus_trace, opt.break_on_transaction);
+	SimpleBus<NUM_CORES + 1, 14> bus("SimpleBus");
 	SyscallHandler sys("SyscallHandler");
 	FU540_PLIC plic("PLIC", NUM_CORES);
 	LWRT_CLINT<NUM_CORES> clint("CLINT");
@@ -221,23 +216,20 @@ int sc_main(int argc, char **argv) {
 	}
 
 	// setup port mapping
-	bus.ports[0] = new PortMapping(opt.mem_start_addr, opt.mem_end_addr, mem);
-	bus.ports[1] = new PortMapping(opt.clint_start_addr, opt.clint_end_addr, clint);
-	bus.ports[2] = new PortMapping(opt.sys_start_addr, opt.sys_end_addr, sys);
-	bus.ports[3] = new PortMapping(opt.dtb_rom_start_addr, opt.dtb_rom_end_addr, dtb_rom);
-	bus.ports[4] = new PortMapping(opt.uart0_start_addr, opt.uart0_end_addr, uart0);
-	bus.ports[5] = new PortMapping(opt.uart1_start_addr, opt.uart1_end_addr, slip);
-	bus.ports[6] = new PortMapping(opt.plic_start_addr, opt.plic_end_addr, plic);
-	bus.ports[7] = new PortMapping(opt.prci_start_addr, opt.prci_end_addr, prci);
-	bus.ports[8] = new PortMapping(opt.sifive_test_start_addr, opt.sifive_test_end_addr, sifive_test);
-	bus.ports[9] = new PortMapping(opt.vncsimplefb_start_addr, opt.vncsimplefb_end_addr, vncsimplefb);
-	bus.ports[10] =
-	    new PortMapping(opt.vncsimpleinputptr_start_addr, opt.vncsimpleinputptr_end_addr, vncsimpleinputptr);
-	bus.ports[11] =
-	    new PortMapping(opt.vncsimpleinputkbd_start_addr, opt.vncsimpleinputkbd_end_addr, vncsimpleinputkbd);
-	bus.ports[12] = new PortMapping(opt.mram_root_start_addr, opt.mram_root_end_addr, mramRoot);
-	bus.ports[13] = new PortMapping(opt.mram_data_start_addr, opt.mram_data_end_addr, mramData);
-	bus.mapping_complete();
+	bus.ports[0] = new PortMapping(opt.mem_start_addr, opt.mem_end_addr);
+	bus.ports[1] = new PortMapping(opt.clint_start_addr, opt.clint_end_addr);
+	bus.ports[2] = new PortMapping(opt.sys_start_addr, opt.sys_end_addr);
+	bus.ports[3] = new PortMapping(opt.dtb_rom_start_addr, opt.dtb_rom_end_addr);
+	bus.ports[4] = new PortMapping(opt.uart0_start_addr, opt.uart0_end_addr);
+	bus.ports[5] = new PortMapping(opt.uart1_start_addr, opt.uart1_end_addr);
+	bus.ports[6] = new PortMapping(opt.plic_start_addr, opt.plic_end_addr);
+	bus.ports[7] = new PortMapping(opt.prci_start_addr, opt.prci_end_addr);
+	bus.ports[8] = new PortMapping(opt.sifive_test_start_addr, opt.sifive_test_end_addr);
+	bus.ports[9] = new PortMapping(opt.vncsimplefb_start_addr, opt.vncsimplefb_end_addr);
+	bus.ports[10] = new PortMapping(opt.vncsimpleinputptr_start_addr, opt.vncsimpleinputptr_end_addr);
+	bus.ports[11] = new PortMapping(opt.vncsimpleinputkbd_start_addr, opt.vncsimpleinputkbd_end_addr);
+	bus.ports[12] = new PortMapping(opt.mram_root_start_addr, opt.mram_root_end_addr);
+	bus.ports[13] = new PortMapping(opt.mram_data_start_addr, opt.mram_data_end_addr);
 
 	// connect TLM sockets
 	for (size_t i = 0; i < NUM_CORES; i++) {

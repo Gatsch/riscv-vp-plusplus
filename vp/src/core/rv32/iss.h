@@ -26,7 +26,6 @@
 #include "mem_if.h"
 #include "syscall_if.h"
 #include "util/common.h"
-#include "util/initiator_if.h"
 #include "v.h"
 
 namespace rv32 {
@@ -138,8 +137,7 @@ struct PendingInterrupts {
 struct ISS : public external_interrupt_target,
              public clint_interrupt_target,
              public iss_syscall_if,
-             public debug_target_if,
-             public initiator_if {
+             public debug_target_if {
 	clint_if *clint = nullptr;
 	instr_memory_if *instr_mem = nullptr;
 	data_memory_if *mem = nullptr;
@@ -182,9 +180,6 @@ struct ISS : public external_interrupt_target,
 	Architecture get_architecture(void) override {
 		return RV32;
 	}
-
-	std::string name();
-	void halt();
 
 	void exec_step();
 

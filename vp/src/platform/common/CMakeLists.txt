@@ -12,7 +12,6 @@ add_library(platform-common
 		vncsimpleinputptr.cpp
 		vncsimpleinputkbd.cpp
 		options.cpp
-		net_trace.cpp
 		${HEADERS})
 
 target_include_directories(platform-common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

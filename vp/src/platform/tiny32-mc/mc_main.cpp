@@ -65,12 +65,7 @@ int sc_main(int argc, char **argv) {
 
 	SimpleMemory mem("SimpleMemory", opt.mem_size);
 	ELFLoader loader(opt.input_program.c_str());
-	NetTrace *bus_trace = NULL;
-	if (opt.trace_bus) {
-		NetTrace trace = NetTrace(opt.trace_bus_port);
-		bus_trace = &trace;
-	}
-	SimpleBus<3, 3> bus("SimpleBus", bus_trace, opt.break_on_transaction);
+	SimpleBus<3, 3> bus("SimpleBus");
 	SyscallHandler sys("SyscallHandler");
 	CLINT<2> clint("CLINT");
 	DebugMemoryInterface dbg_if("DebugMemoryInterface");
@@ -79,10 +74,9 @@ int sc_main(int argc, char **argv) {
 	core0_mem_if.bus_lock = bus_lock;
 	core1_mem_if.bus_lock = bus_lock;
 
-	bus.ports[0] = new PortMapping(opt.mem_start_addr, opt.mem_end_addr, mem);
-	bus.ports[1] = new PortMapping(opt.clint_start_addr, opt.clint_end_addr, clint);
-	bus.ports[2] = new PortMapping(opt.sys_start_addr, opt.sys_end_addr, sys);
-	bus.mapping_complete();
+	bus.ports[0] = new PortMapping(opt.mem_start_addr, opt.mem_end_addr);
+	bus.ports[1] = new PortMapping(opt.clint_start_addr, opt.clint_end_addr);
+	bus.ports[2] = new PortMapping(opt.sys_start_addr, opt.sys_end_addr);
 
 	loader.load_executable_image(mem, mem.size, opt.mem_start_addr);
 
