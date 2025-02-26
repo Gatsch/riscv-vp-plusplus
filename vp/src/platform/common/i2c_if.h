@@ -12,14 +12,17 @@
 class I2C_Device_IF {
    public:
    
+    virtual bool start();
     virtual bool write(uint8_t data) = 0;
-    virtual uint8_t read() = 0;
+    virtual bool read(uint8_t &data) = 0;
+    virtual bool stop();
 };
 
 /* i2c host interface */
 class I2C_IF {
 
     std::map<uint8_t, I2C_Device_IF*> devices;
+    I2C_Device_IF *device;
 
     public: 
 
@@ -39,31 +42,47 @@ class I2C_IF {
         return device->second;
     }
 
-    bool write(uint8_t addr, uint8_t data) {
-        I2C_Device_IF *device = get_device(addr);
-        bool ack = false;
-		if (device == nullptr) {
-			std::cerr << "I2C: WARNING: Write to unregistered adress" << addr << std::endl;
-			return false;
-		}
-        ack = device->write(data);
-        if (!ack) {
-            std::cerr << "I2C: WARNING: Write to device " << addr << " failed" << std::endl;
+    bool start(uint8_t addr) {
+        device = get_device(addr);
+        if (device == nullptr) {
+            std::cerr << "I2C: WARNING: Device not registered" << addr << std::endl;
             return false;
         }
-		return true;
+        bool ack = device->start();
+        if (!ack) {
+            std::cerr << "I2C: WARNING: Device not responding" << addr << std::endl;
+        }
+        return ack;
     }
 
-    bool read(uint8_t addr, uint8_t &data) {
-        I2C_Device_IF *device = get_device(addr);
+    bool write(uint8_t data) {
+        bool ack = false;
         if (device == nullptr) {
-            std::cerr << "I2C: WARNING: Read from unregistered adress" << addr << std::endl;
+            std::cerr << "I2C: WARNING: No device addressed" << std::endl;
             return false;
         }
-        data = device->read();
-        return true;
+        ack = device->write(data);
+        if (!ack) {
+            std::cerr << "I2C: WARNING: Write failed" << std::endl;
+        }
+		return ack;
+    }
+
+    bool read(uint8_t &data) {
+        if (device == nullptr) {
+            std::cerr << "I2C: WARNING: No device addressed" << std::endl;
+            return false;
+        }
+        ack = device->read(data);
+        if (!ack) {
+            std::cerr << "I2C: WARNING: Read failed" << std::endl;
+        }
+        return ack;
     }
     
+    void stop() {
+        device = NULL;
+    }
 };
 
 #endif /* RISCV_VP_I2C_IF_H */
