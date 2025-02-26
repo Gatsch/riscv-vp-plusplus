@@ -10,6 +10,8 @@
 
 /* generic i2c device interface */
 class I2C_Device_IF {
+   public:
+   
     virtual bool write(uint8_t data) = 0;
     virtual uint8_t read() = 0;
 };
@@ -39,12 +41,12 @@ class I2C_IF {
 
     bool write(uint8_t addr, uint8_t data) {
         I2C_Device_IF *device = get_device(addr);
-        bool ack = false
+        bool ack = false;
 		if (device == nullptr) {
 			std::cerr << "I2C: WARNING: Write to unregistered adress" << addr << std::endl;
 			return false;
 		}
-        ack = devices[addr]->write(data);
+        ack = device->write(data);
         if (!ack) {
             std::cerr << "I2C: WARNING: Write to device " << addr << " failed" << std::endl;
             return false;
@@ -58,7 +60,7 @@ class I2C_IF {
             std::cerr << "I2C: WARNING: Read from unregistered adress" << addr << std::endl;
             return false;
         }
-        data = devices[addr]->read();
+        data = device->read();
         return true;
     }
     
