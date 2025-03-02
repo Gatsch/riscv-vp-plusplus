@@ -1,10 +1,12 @@
 #ifndef RISCV_VP_DS1307_H
 #define RISCV_VP_DS1307_H
 
+#pragma once
 #include <stdint.h>
 #include <fstream>
 #include "time.h"
 #include <ctime>
+#include "chrono"
 
 #include "i2c_if.h"
 
@@ -21,6 +23,11 @@
 
 #define DS1307_BIT_12_24_MASK 0x40
 #define DS1307_BIT_PM_AM_MASK 0x20
+#define DS1307_BIT_CH_MASK 0x80
+
+#define DIFF_DATE_TIME_FILE "ds_1307_date_time_diff"
+#define DATE_TIME_HALT_VAL "ds_1307_date_time_halt"
+#define DS1307_MODE_FILE "ds_1307_mode_12h"
 
 
 class DS1307 : public I2C_Device_IF {
@@ -36,16 +43,22 @@ class DS1307 : public I2C_Device_IF {
     bool stop() override;
 
     // internal functions for handling time and date
-    struct tm get_local_date_time();
     struct tm get_date_time();
-    struct tm diff_date_time(struct tm t1, struct tm t2);
-    bool save_diff_date_time(struct tm& diff);
-    bool get_diff_date_time(struct tm& diff);
-    void update_date_time(struct tm diff, uint8_t mode_12h);
+    struct tm get_local_date_time();
+    std::time_t convert_tm_to_seconds(struct tm date_time);
+    long long diff_date_time(struct tm t1, struct tm t2);
+    bool save_date_time(struct tm& date_time, const char* filename);
+    bool load_date_time(struct tm& date_time, const char* filename);
+    bool save_diff(long long& diff, const char* filename);
+    bool load_diff(long long& diff, const char* filename);
+    bool save_mode12h(uint8_t& diff, const char* filename);
+    bool load_mode12h(uint8_t& diff, const char* filename);
+    void update_date_time(long long diff, uint8_t mode_12h, uint8_t CH_bit);
+    void reset_diff();
 
    public:
     DS1307();
 
-}
+};
 
 #endif /* RISCV_VP_DS1307_H */
