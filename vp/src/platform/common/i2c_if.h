@@ -69,6 +69,7 @@ class I2C_IF {
     }
 
     bool read(uint8_t &data) {
+        bool ack;
         if (device == nullptr) {
             std::cerr << "I2C: WARNING: No device addressed" << std::endl;
             return false;
