@@ -10,8 +10,9 @@
 
 /* generic i2c device interface */
 class I2C_Device_IF {
-   public:
+    friend class I2C_IF;
    
+   protected:
     virtual bool start();
     virtual bool write(uint8_t data) = 0;
     virtual bool read(uint8_t &data) = 0;
@@ -24,7 +25,7 @@ class I2C_IF {
     std::map<uint8_t, I2C_Device_IF*> devices;
     I2C_Device_IF *device;
 
-    public: 
+   public: 
 
     void register_device(uint8_t addr, I2C_Device_IF* device) {
         devices.insert(std::pair<const uint32_t, I2C_Device_IF*>(addr, device));
