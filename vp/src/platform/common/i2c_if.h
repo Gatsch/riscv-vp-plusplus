@@ -13,10 +13,10 @@ class I2C_Device_IF {
     friend class I2C_IF;
    
    protected:
-    virtual bool start();
+    virtual bool start() = 0;
     virtual bool write(uint8_t data) = 0;
     virtual bool read(uint8_t &data) = 0;
-    virtual bool stop();
+    virtual bool stop() = 0;
 };
 
 /* i2c host interface */

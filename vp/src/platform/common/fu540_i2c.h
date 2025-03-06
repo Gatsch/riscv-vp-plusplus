@@ -117,12 +117,14 @@ void FU540_I2C::register_update_callback(const vp::map::register_access_t &r) {
                     //TODO: Flag is immideatly cleared??
                     transferInProgress = true;
                     rxack = !I2C_IF::start((reg_txr & I2C_TX_ADDR) >> 1);
-                    transferInProgress = false; //TODO: interrupt
+                    transferInProgress = false;
+                    plic->gateway_trigger_interrupt(interrupt);
                 } else {
                     transferInProgress = true;
                     uint8_t data = reg_txr;
                     rxack = !I2C_IF::write(data);
-                    transferInProgress = false; //TODO: interrupt
+                    transferInProgress = false;
+                    plic->gateway_trigger_interrupt(interrupt);
                     if (r.nv & I2C_CR_STO) {
                         I2C_IF::stop();
                     }
@@ -136,7 +138,8 @@ void FU540_I2C::register_update_callback(const vp::map::register_access_t &r) {
                     uint8_t data;
                     I2C_IF::read(data);
                     reg_rxr = data;
-                    transferInProgress = false; //TODO: interrupt
+                    transferInProgress = false;
+                    plic->gateway_trigger_interrupt(interrupt);
                     if (r.nv & I2C_CR_STO) {
                         I2C_IF::stop();
                     }

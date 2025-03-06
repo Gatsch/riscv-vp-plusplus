@@ -30,6 +30,7 @@
 #include "uart.h"
 #include "util/options.h"
 #include "FU540_i2c.h"
+#include "ds1307.h"
 
 using namespace rv32;
 namespace po = boost::program_options;
@@ -246,7 +247,8 @@ int sc_main(int argc, char **argv) {
 	ethernet.plic = &plic;
 	i2c.plic = &plic;
 
-	//i2c.register_device(,); //TODO: device add
+	DS1307 ds1307;
+	i2c.register_device(0x68, &ds1307);
 
 	std::vector<debug_target_if *> threads;
 	threads.push_back(&core);
