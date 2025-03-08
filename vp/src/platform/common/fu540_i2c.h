@@ -40,13 +40,13 @@ private:
         // Clock Prescale register lo-byte
         REG_PRER_LO = 0x00,
         // Clock Prescale register hi-byte
-        REG_PRER_HI = 0x01,
+        REG_PRER_HI = 0x04,
         // Control register
-        REG_CTR = 0x02,
+        REG_CTR = 0x08,
         // Transmit & Receive register
-        REG_TXR_RXR = 0x03,
+        REG_TXR_RXR = 0x0C,
         // Command & Status register
-        REG_CR_SR = 0x04,
+        REG_CR_SR = 0x10,
     };
 
     #define I2C_CTR_EN (1 << 7)

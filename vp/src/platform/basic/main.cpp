@@ -29,7 +29,7 @@
 #include "syscall.h"
 #include "uart.h"
 #include "util/options.h"
-#include "FU540_i2c.h"
+#include "fu540_i2c.h"
 #include "ds1307.h"
 
 using namespace rv32;
@@ -74,7 +74,7 @@ class BasicOptions : public Options {
 	addr_t display_start_addr = 0x72000000;
 	addr_t display_end_addr = display_start_addr + Display::addressRange;
 	addr_t i2c_start_addr = 0x10030000;
-	addr_t i2c_end_addr = 0x10030FFF;
+	addr_t i2c_end_addr = 0x10031000;
 
 	bool quiet = false;
 
@@ -247,8 +247,8 @@ int sc_main(int argc, char **argv) {
 	ethernet.plic = &plic;
 	i2c.plic = &plic;
 
-	DS1307 ds1307;
-	i2c.register_device(0x68, &ds1307);
+	DS1307* ds1307 = new DS1307();
+	i2c.register_device(0x68, ds1307);
 
 	std::vector<debug_target_if *> threads;
 	threads.push_back(&core);

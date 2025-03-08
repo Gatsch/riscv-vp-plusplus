@@ -13,12 +13,23 @@ DS1307::DS1307() {
     struct tm stopped_t;
     long long diff;
     uint8_t mode_12h;
-    this->load_mode12h(mode_12h, DS1307_MODE_FILE);
+    if (!this->load_mode12h(mode_12h, DS1307_MODE_FILE)) {
+        mode_12h = 0;
+        printf("Generating file %s\n", DS1307_MODE_FILE);
+        this->save_mode12h(mode_12h, DS1307_MODE_FILE); // generate file
+    }
     if (!this->load_date_time(stopped_t, DATE_TIME_HALT_VAL)) {
-        mode_12h = 0; // default val if file does not exist
-    };
+        stopped_t = {-1,-1,-1};
+        printf("Generating file %s\n", DATE_TIME_HALT_VAL);
+        this->save_date_time(stopped_t, DATE_TIME_HALT_VAL); // generate file
+    }
     if (stopped_t.tm_sec == -1 && stopped_t.tm_hour == -1 && stopped_t.tm_min == -1) { // time is not stopped
-        this->load_diff(diff, DIFF_DATE_TIME_FILE);
+        if( !this->load_diff(diff, DIFF_DATE_TIME_FILE)){
+            diff = 0;
+            printf("Generating file %s\n", DIFF_DATE_TIME_FILE);
+            this->save_diff(diff, DIFF_DATE_TIME_FILE);
+
+        }
         this->update_date_time(diff, mode_12h, 0);
 
     } else { // time stopped calculate current diff and set CH bit to 1

@@ -15,6 +15,7 @@ add_library(platform-common
 		spi_sd_card.cpp
 		options.cpp
 		net_trace.cpp
+		ds1307.cpp
 		${HEADERS})
 
 target_include_directories(platform-common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
