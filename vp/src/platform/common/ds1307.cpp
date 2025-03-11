@@ -6,13 +6,14 @@
 
 DS1307::DS1307() {
     reg_pointer = 0;
-    start_signal = 0;
+    start_signal = NOT_BUSY;
     for (int i = 0; i < 64; i++) {
         registers[i] = 0;
     }
     struct tm stopped_t;
     long long diff;
     uint8_t mode_12h;
+    //this->reset_diff(); // ONLY FOR TESTING REMOVE FOR FINAL VERSION
     if (!this->load_mode12h(mode_12h, DS1307_MODE_FILE)) {
         mode_12h = 0;
         printf("Generating file %s\n", DS1307_MODE_FILE);
@@ -40,7 +41,7 @@ DS1307::DS1307() {
 }
 
 bool DS1307::start() {
-    start_signal = 1;
+    start_signal = START_RECEIVED;
     long long diff;
     // load current diff time and date from file and update registers
     if (!(registers[DS1307_ADRESS_SECONDS] & DS1307_BIT_CH_MASK)) {  // Clock is halted, do not update time
@@ -58,23 +59,29 @@ bool DS1307::start() {
 }
 
 bool DS1307::write(uint8_t data) {
-    if (start_signal) {
+    if (start_signal == START_RECEIVED) {
         reg_pointer = data;
-        start_signal = 0;
-    } else {
+        start_signal = BUSY;
+    } else if (start_signal == BUSY) {
         registers[reg_pointer] = data;
         reg_pointer++;
+    } else {
+        return false;
     }
     return true;
 }
 
 bool DS1307::read(uint8_t &data) {
-    data = registers[reg_pointer];
-    reg_pointer++;
-    return true;
+    if (start_signal == START_RECEIVED) {
+        data = registers[reg_pointer];
+        reg_pointer++;
+        return true;
+    }
+    return false;
 }
 
 bool DS1307::stop() {
+    start_signal = NOT_BUSY;
     // update time diff
     struct tm set_time = this->get_date_time();
     struct tm  local_time = this->get_local_date_time();

@@ -2,8 +2,6 @@
 #include "stdio.h"
 #include "irq.h"
 
-
-
 #define DS1307_ADRESS_SECONDS 0x00
 #define DS1307_ADRESS_MINUTES 0x01
 #define DS1307_ADRESS_HOURS 0x02
@@ -66,7 +64,7 @@ void i2c_start(uint8_t address) {
 
 void i2c_stop() {
     // Generate stop condition
-    *I2C_CR = (1 << 4) |  (1 << 6); // do not set write bit 
+    *I2C_CR = (1 << 6);
 
 }
 void i2c_write(uint8_t address, uint8_t data) {
@@ -83,16 +81,12 @@ void i2c_write(uint8_t address, uint8_t data) {
 
 }
 
-
-void start_read(uint8_t address) {
-    // Write slave address with read bit (1)
-    *I2C_TXR = (address << 1) | 1;
-    *I2C_CR = (1 << 7) | (1 << 4);  // Generate start condition and read
-
-}
 uint8_t i2c_read(uint8_t address) {
     uint8_t data;
 
+    // Write slave address with read bit (1)
+    *I2C_TXR = (address << 1) | 1;
+    *I2C_CR = (1 << 7) | (1 << 4);  // Generate start condition and read
 
     // Wait for TIP to be cleared
     while (*I2C_SR & (1 << 1));
@@ -104,7 +98,6 @@ uint8_t i2c_read(uint8_t address) {
     while (*I2C_SR & (1 << 1));
 
     data = *I2C_TXR;  // Read data from slave
-    
 
     return data;
 }
@@ -113,32 +106,31 @@ int main() {
     register_interrupt_handler(50, i2c_irq_handler);
      printf("enable I2C controller\n");
     *I2C_CTR = 0x80;  // Enable I2C controller
-		
+
     printf("Write\n");
     i2c_start(0x68);
     // Write data to slave
-    i2c_write(0x68, 0x00);  // Example: Write 0x02 to slave address 0x68
-    printf("Write\n");
-    //i2c_write(0x68, 0x00); 
+    //i2c_write(0x68, 0x02);  // Example: Write 0x02 to slave address 0x68
+    i2c_write(0x68, 0x00); 
     i2c_stop();
-    
 
+    /*
+    i2c_start(0x68);
     printf("Write\n");
-    //i2c_start(0x68);
     // Write data to slave
-    //i2c_write(0x68, 0x00);  // Example: Write 0x02 to slave address 0x68
-    //i2c_stop();
+    i2c_write(0x68, 0x00);  // Example: Write 0x01 to slave address 0x68
+    i2c_stop();
+    */
     printf("Read\n");
     // Read data from slave
     int i = 0;
-    start_read(0x68);
     for (int i = 0; i < 8; i++) {
     	uint8_t data = i2c_read(0x68);
     	printf("Received data: %d\n", data);
     	registers[i] = data;
     }
     //printf("Received data: %02x\n", data);
-    *I2C_CR = (1 << 5) |  (1 << 6);
+    
     print_date_time();
     
 
@@ -171,4 +163,3 @@ int main() {
 	return 0;
 }
 */
-

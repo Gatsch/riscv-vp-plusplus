@@ -25,6 +25,10 @@
 #define DS1307_BIT_PM_AM_MASK 0x20
 #define DS1307_BIT_CH_MASK 0x80
 
+#define NOT_BUSY 0
+#define START_RECEIVED 1
+#define BUSY 2
+
 #define DIFF_DATE_TIME_FILE "ds_1307_date_time_diff"
 #define DATE_TIME_HALT_VAL "ds_1307_date_time_halt"
 #define DS1307_MODE_FILE "ds_1307_mode_12h"
