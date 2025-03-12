@@ -83,6 +83,11 @@ class I2C_IF {
     }
     
     void stop() {
+        if (device == nullptr) {
+            std::cerr << "I2C: WARNING: No device addressed" << std::endl;
+            return;
+        }
+        device->stop();
         device = NULL;
     }
 };

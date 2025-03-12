@@ -53,122 +53,96 @@ void print_date_time() {
 
 }
 
+#define I2C_CTR_EN (1 << 7)
+#define I2C_CTR_IEN (1 << 6)
+#define I2C_TX_ADDR (0xFF ^ 1)
+#define I2C_TX_WR 1
+#define I2C_CR_STA (1 << 7)
+#define I2C_CR_STO (1 << 6)
+#define I2C_CR_RD (1 << 5)
+#define I2C_CR_WR (1 << 4)
+#define I2C_CR_ACK (1 << 3)
+#define I2C_CR_IACK (1)
+#define I2C_SR_RXACK (1 << 7)
+#define I2C_SR_BUSY (1 << 6)
+#define I2C_SR_AL (1 << 5)
+#define I2C_SR_TIP (1 << 1)
+#define I2C_SR_IF (1)
+
 void i2c_irq_handler() {
 	printf("I2C: INTERRUPT HANDLER\n");
 }
 
-void i2c_start(uint8_t address) {
-    // Write slave address with write bit (0)
-    *I2C_TXR = (address << 1) | 0;
-    *I2C_CR = (1 << 7) | (1 << 4);  // Generate start condition and write
-
+void i2c_enable(uint8_t enable) {
+    if (enable) {
+        *I2C_CTR |= I2C_CTR_EN;
+    } else {
+        *I2C_CTR &= ~I2C_CTR_EN;
+    }
 }
 
-void i2c_stop() {
-    // Generate stop condition
-    *I2C_CR = (1 << 4) |  (1 << 6); // do not set write bit 
-
+void i2c_interruptEnable(uint8_t enable) {
+    if (enable) {
+        *I2C_CTR |= I2C_CTR_IEN;
+    } else {
+        *I2C_CTR &= ~I2C_CTR_IEN;
+    }
 }
-void i2c_write(uint8_t address, uint8_t data) {
-    
-    // Wait for TIP (Transfer In Progress) to be cleared
-    while (*I2C_SR & (1 << 1));
 
-    // Write data to slave
+void i2c_start(uint8_t address, uint8_t rnw) {
+    *I2C_TXR = (address << 1) | rnw;
+    *I2C_CR = I2C_CR_STA | I2C_CR_WR;
+    while (*I2C_SR & I2C_SR_TIP);
+}
+
+uint8_t i2c_read(uint8_t stop) {
+    *I2C_CR = I2C_CR_RD | (stop ? I2C_CR_STO : 0);
+    while (*I2C_SR & I2C_SR_TIP);
+    return *I2C_RXR;
+}
+
+void i2c_write(uint8_t data, uint8_t stop) {
     *I2C_TXR = data;
-    *I2C_CR = (1 << 4);  // Write
-
-    // Wait for TIP to be cleared
-    while (*I2C_SR & (1 << 1));
-
+    *I2C_CR = I2C_CR_WR | (stop ? I2C_CR_STO : 0);
+    while (*I2C_SR & I2C_SR_TIP);
 }
 
-
-void start_read(uint8_t address) {
-    // Write slave address with read bit (1)
-    *I2C_TXR = (address << 1) | 1;
-    *I2C_CR = (1 << 7) | (1 << 4);  // Generate start condition and read
-
-}
-uint8_t i2c_read(uint8_t address) {
-    uint8_t data;
-
-
-    // Wait for TIP to be cleared
-    while (*I2C_SR & (1 << 1));
-
-    // Read data from slave
-    *I2C_CR = (1 << 5);  // Read
-
-    // Wait for TIP to be cleared
-    while (*I2C_SR & (1 << 1));
-
-    data = *I2C_TXR;  // Read data from slave
-    
-
-    return data;
-}
 
 int main() {
     register_interrupt_handler(50, i2c_irq_handler);
-     printf("enable I2C controller\n");
-    *I2C_CTR = 0x80;  // Enable I2C controller
+    printf("enable I2C controller and Interrupts\n");
+    i2c_enable(1);
+    i2c_interruptEnable(1);
 		
-    printf("Write\n");
-    i2c_start(0x68);
+    printf("Write 1:\n");
+    printf("\tStart");
+    i2c_start(0x68, 0);
     // Write data to slave
-    i2c_write(0x68, 0x00);  // Example: Write 0x02 to slave address 0x68
-    printf("Write\n");
-    //i2c_write(0x68, 0x00); 
-    i2c_stop();
+    printf("\tWrite year register address to slave\n");
+    i2c_write(DS1307_ADRESS_YEAR, 0); 
+    printf("\tWrite 0 to year register and stop\n");
+    i2c_write(0x25, 1); 
     
-
-    printf("Write\n");
-    //i2c_start(0x68);
+    
+    printf("Write 2:\n");
+    printf("\tStart");
+    i2c_start(0x68, 0);
     // Write data to slave
-    //i2c_write(0x68, 0x00);  // Example: Write 0x02 to slave address 0x68
-    //i2c_stop();
-    printf("Read\n");
+    printf("\tWrite 0 address to slave and stop\n");
+    i2c_write(0x00, 1);
+
+
+    printf("Read 1:\n");
     // Read data from slave
     int i = 0;
-    start_read(0x68);
+    printf("\tStart");
+    i2c_start(0x68, 1);
     for (int i = 0; i < 8; i++) {
-    	uint8_t data = i2c_read(0x68);
-    	printf("Received data: %d\n", data);
+        printf("\tRead data %d from slave%s\n", i, i == 7 ? " and stop" : "");
+    	uint8_t data = i2c_read(i == 7);
+    	printf("\tReceived data: %d\n", data);
     	registers[i] = data;
     }
-    //printf("Received data: %02x\n", data);
-    *I2C_CR = (1 << 5) |  (1 << 6);
     print_date_time();
-    
-
     return 0;
 }
-/*
-int main() {
-	register_interrupt_handler(50, i2c_irq_handler);
-	printf("enable I2C controller\n");
-	*I2C_CTR = 0x80;	// enable I2C controller
-	printf("write slave address\n");
-	*I2C_RXR_TXR = 0x68 << 15 | 1;	// write slave address
-	printf("generate start condition\n");
-	*I2C_CR_SR = 0x80 | (1 << 4);	// generate start condition
-	printf("wait for TIP to be cleared\n");
-	while (!(*I2C_CR_SR & 0x02));	// wait for TIP to be cleared
-	printf("read and stop condition\n");
-	*I2C_CR_SR = (1 << 5) | (1 << 6); //read and stop condition
-	uint8_t data = 0x00;
-	printf("wait for TIP to be cleared\n");
-	while (!(*I2C_CR_SR & 0x02));	// wait for TIP to be cleared
-	printf("read data from slave\n");
-	data = *I2C_RXR_TXR;	// read data from slave
-
-	printf("%d%d\n", data & 0x70, data & 0x0F);
-	
-	printf("test ");
-	puts("a");
-
-	return 0;
-}
-*/
-

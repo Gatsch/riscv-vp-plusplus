@@ -16,6 +16,7 @@ add_library(platform-common
 		options.cpp
 		net_trace.cpp
 		ds1307.cpp
+		fu540_i2c.cpp
 		${HEADERS})
 
 target_include_directories(platform-common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
