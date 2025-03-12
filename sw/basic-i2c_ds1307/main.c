@@ -71,6 +71,7 @@ void print_date_time() {
 
 void i2c_irq_handler() {
 	printf("I2C: INTERRUPT HANDLER\n");
+    *I2C_CR = I2C_CR_IACK;
 }
 
 void i2c_enable(uint8_t enable) {
@@ -96,7 +97,7 @@ void i2c_start(uint8_t address, uint8_t rnw) {
 }
 
 uint8_t i2c_read(uint8_t stop) {
-    *I2C_CR = I2C_CR_RD | (stop ? I2C_CR_STO : 0);
+    *I2C_CR = I2C_CR_RD | (stop ? I2C_CR_STO | I2C_CR_ACK : 0);
     while (*I2C_SR & I2C_SR_TIP);
     return *I2C_RXR;
 }
@@ -115,7 +116,7 @@ int main() {
     i2c_interruptEnable(1);
 		
     printf("Write 1:\n");
-    printf("\tStart");
+    printf("\tStart\n");
     i2c_start(0x68, 0);
     // Write data to slave
     printf("\tWrite year register address to slave\n");

@@ -67,7 +67,8 @@ private:
 
     void transport(tlm::tlm_generic_payload &trans, sc_core::sc_time &delay);
     void register_update_callback(const vp::map::register_access_t &r);
-    uint8_t get_status_register();
+    void triggerInterrupt();
+    uint8_t getStatusRegister();
 };
 
 #endif  // RISCV_VP_FU540_I2C_H

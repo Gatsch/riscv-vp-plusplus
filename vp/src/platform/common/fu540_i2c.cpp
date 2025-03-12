@@ -20,9 +20,8 @@ void FU540_I2C::transport(tlm::tlm_generic_payload &trans, sc_core::sc_time &del
 }
 
 void FU540_I2C::register_update_callback(const vp::map::register_access_t &r) {
-
     if(r.write) {
-        switch (r.addr) { //TODO: check if addr is correct -> alternative switch to pointer
+        switch (r.addr) {
         case REG_PRER_LO: 
         case REG_PRER_HI:
             r.fn();
@@ -41,25 +40,20 @@ void FU540_I2C::register_update_callback(const vp::map::register_access_t &r) {
             if (!enabled) {
                 return;
             }
-        
             if (r.nv & I2C_CR_WR) {
+                //TODO: Flag is immideatly cleared
+                transferInProgress = true;
                 if (r.nv & I2C_CR_STA) {
-                    //TODO: Flag is immideatly cleared??
-                    transferInProgress = true;
                     rxack = !I2C_IF::start((reg_txr & I2C_TX_ADDR) >> 1);
-                    transferInProgress = false;
-                    if (interrupt_enabled) plic->gateway_trigger_interrupt(interrupt);
                 } else {
-                    transferInProgress = true;
                     uint8_t data = reg_txr;
                     rxack = !I2C_IF::write(data);
-                    transferInProgress = false;
-                    if (interrupt_enabled) plic->gateway_trigger_interrupt(interrupt);
-                    if (r.nv & I2C_CR_STO) {
-                        I2C_IF::stop();
-                    }
                 }
-
+                transferInProgress = false;
+                triggerInterrupt();
+                interruptFlag = true;if (r.nv & I2C_CR_STO) {
+                    I2C_IF::stop();
+                }
             } else if (r.nv & I2C_CR_RD) {
                 if (r.nv & I2C_CR_STA) {
                     //TODO: Error??
@@ -69,26 +63,36 @@ void FU540_I2C::register_update_callback(const vp::map::register_access_t &r) {
                     I2C_IF::read(data);
                     reg_rxr = data;
                     transferInProgress = false;
-                    if (interrupt_enabled) plic->gateway_trigger_interrupt(interrupt);
+                    triggerInterrupt();
+                    interruptFlag = true;
                     if (r.nv & I2C_CR_STO) {
                         I2C_IF::stop();
                     }
                 }
             }
-
+            if (r.nv & I2C_CR_IACK) {
+                interruptFlag = false;
+            } 
             sendACK = ~(r.nv & I2C_CR_ACK); //TODO: what to do with ACK
             break;
         default:
-            //TODO: r.fn() or error?
+            //TODO: possible error
             break;
         }
     } else if (r.read) {
-        reg_sr = get_status_register(); //update status register before possible read
+        reg_sr = getStatusRegister(); //update status register before possible read
         r.fn();
     }
 }
 
-uint8_t FU540_I2C::get_status_register() {
+void FU540_I2C::triggerInterrupt() {
+    if (plic != nullptr && interrupt_enabled && !interruptFlag) {
+        plic->gateway_trigger_interrupt(interrupt);
+    }
+    interruptFlag = true;
+}
+
+uint8_t FU540_I2C::getStatusRegister() {
     uint8_t status = 0;
     if (rxack)              status |= I2C_SR_RXACK;
     if (busy)               status |= I2C_SR_BUSY;
