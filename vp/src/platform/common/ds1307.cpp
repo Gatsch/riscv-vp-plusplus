@@ -20,7 +20,7 @@ DS1307::DS1307() {
         this->save_mode12h(mode_12h, DS1307_MODE_FILE); // generate file
     }
     if (!this->load_date_time(stopped_t, DATE_TIME_HALT_VAL)) {
-        stopped_t = {-1,-1,-1};
+        stopped_t = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,""};
         printf("Generating file %s\n", DATE_TIME_HALT_VAL);
         this->save_date_time(stopped_t, DATE_TIME_HALT_VAL); // generate file
     }
@@ -49,7 +49,7 @@ bool DS1307::start() {
         uint8_t mode_12h = (registers[DS1307_ADRESS_HOURS] & DS1307_BIT_12_24_MASK) >> 6;
         uint8_t CH_bit = (registers[DS1307_ADRESS_SECONDS] & DS1307_BIT_CH_MASK) >> 7;
         this->update_date_time(diff, mode_12h, CH_bit);
-        struct tm stopped_t = {-1,-1,-1}; // time is not stopped
+        struct tm stopped_t = {-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,""}; // time is not stopped
         this->save_date_time(stopped_t, DATE_TIME_HALT_VAL);
     } else {
         struct tm stopped_t = this->get_date_time();
