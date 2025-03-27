@@ -40,6 +40,9 @@ void FU540_I2C::register_update_callback(const vp::map::register_access_t &r) {
             if (!enabled) {
                 return;
             }
+            if (r.nv & I2C_CR_IACK) {
+                interruptFlag = false;
+            } 
             if (r.nv & I2C_CR_WR) {
                 //TODO: Flag is immideatly cleared
                 transferInProgress = true;
@@ -51,7 +54,7 @@ void FU540_I2C::register_update_callback(const vp::map::register_access_t &r) {
                 }
                 transferInProgress = false;
                 triggerInterrupt();
-                interruptFlag = true;if (r.nv & I2C_CR_STO) {
+                if (r.nv & I2C_CR_STO) {
                     I2C_IF::stop();
                 }
             } else if (r.nv & I2C_CR_RD) {
@@ -64,15 +67,11 @@ void FU540_I2C::register_update_callback(const vp::map::register_access_t &r) {
                     reg_rxr = data;
                     transferInProgress = false;
                     triggerInterrupt();
-                    interruptFlag = true;
                     if (r.nv & I2C_CR_STO) {
                         I2C_IF::stop();
                     }
                 }
             }
-            if (r.nv & I2C_CR_IACK) {
-                interruptFlag = false;
-            } 
             sendACK = ~(r.nv & I2C_CR_ACK); //TODO: what to do with ACK
             break;
         default:
