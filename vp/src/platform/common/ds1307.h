@@ -10,6 +10,7 @@
 
 #include "i2c_if.h"
 
+#define DS1307_SIZE_REG_RAM 64
 #define DS1307_ADRESS_SECONDS 0x00
 #define DS1307_ADRESS_MINUTES 0x01
 #define DS1307_ADRESS_HOURS 0x02
@@ -32,10 +33,11 @@
 #define DIFF_DATE_TIME_FILE "ds_1307_date_time_diff"
 #define DATE_TIME_HALT_VAL "ds_1307_date_time_halt"
 #define DS1307_MODE_FILE "ds_1307_mode_12h"
+#define DS1307_STATE_FILE "ds_1307_state"
 
 
 class DS1307 : public I2C_Device_IF {
-    uint8_t registers[64];
+    uint8_t registers[DS1307_SIZE_REG_RAM];
     uint8_t reg_pointer;
     uint8_t start_signal;
 
@@ -51,14 +53,12 @@ class DS1307 : public I2C_Device_IF {
     struct tm get_local_date_time();
     std::time_t convert_tm_to_seconds(struct tm date_time);
     long long diff_date_time(struct tm t1, struct tm t2);
-    bool save_date_time(struct tm& date_time, const char* filename);
-    bool load_date_time(struct tm& date_time, const char* filename);
     bool save_diff(long long& diff, const char* filename);
     bool load_diff(long long& diff, const char* filename);
-    bool save_mode12h(uint8_t& diff, const char* filename);
-    bool load_mode12h(uint8_t& diff, const char* filename);
+    bool save_state(uint8_t* state, const char* filename);
+    bool load_state(uint8_t* state, const char* filename);
     void update_date_time(long long diff, uint8_t mode_12h, uint8_t CH_bit);
-    void reset_diff();
+    void reset_rtc();
 
    public:
     DS1307();
