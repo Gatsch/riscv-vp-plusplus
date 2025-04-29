@@ -36,8 +36,8 @@
 #include "syscall.h"
 #include "util/options.h"
 #include "util/vncserver.h"
-#include "fu540_i2c.h"
-#include "ds1307.h"
+#include "platform/common/fu540_i2c.h"
+#include "platform/common/ds1307.h"
 
 /* if not defined externally fall back to TARGET_RV64 */
 #if !defined(TARGET_RV32) && !defined(TARGET_RV64)
@@ -117,7 +117,7 @@ struct LinuxOptions : public Options {
 	addr_t mram_data_start_addr = 0x60000000;
 	addr_t mram_data_size = 1024u * 1024u * (unsigned int)(MRAM_SIZE_MB);
 	addr_t mram_data_end_addr = mram_data_start_addr + mram_data_size - 1;
-	addr_t i2c_start_addr = 0x10030000;
+        addr_t i2c_start_addr = 0x10030000;
 	addr_t i2c_end_addr = 0x10031000;
 
 	OptionValue<unsigned long> entry_point;
@@ -257,9 +257,7 @@ int sc_main(int argc, char **argv) {
 	MemoryMappedFile mramRoot("MRAM_Root", opt.mram_root_image, opt.mram_root_size);
 	MemoryMappedFile mramData("MRAM_Data", opt.mram_data_image, opt.mram_data_size);
 	FU540_I2C i2c("I2C", 50);
-
-	DS1307* ds1307 = new DS1307();
-	i2c.register_device(0x68, ds1307);
+	
 
 	SPI_SD_Card spi_sd_card(&spi2, 0, &gpio, 11, false);
 	if (opt.sd_card_image.length()) {
@@ -358,6 +356,9 @@ int sc_main(int argc, char **argv) {
 	vncsimpleinputptr.plic = &plic;
 	vncsimpleinputkbd.plic = &plic;
 	i2c.plic = &plic;
+	
+	DS1307* ds1307 = new DS1307();
+	i2c.register_device(0x68, ds1307);
 
 	for (size_t i = 0; i < NUM_CORES; i++) {
 		// switch for printing instructions
