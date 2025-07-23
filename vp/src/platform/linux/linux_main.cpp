@@ -117,7 +117,11 @@ struct LinuxOptions : public Options {
 	addr_t mram_data_start_addr = 0x60000000;
 	addr_t mram_data_size = 1024u * 1024u * (unsigned int)(MRAM_SIZE_MB);
 	addr_t mram_data_end_addr = mram_data_start_addr + mram_data_size - 1;
+<<<<<<< HEAD
         addr_t i2c_start_addr = 0x10030000;
+=======
+    addr_t i2c_start_addr = 0x10030000;
+>>>>>>> d2321ca (fixed i2cdetect not working and no stop signal sent)
 	addr_t i2c_end_addr = 0x10031000;
 
 	OptionValue<unsigned long> entry_point;
@@ -358,7 +362,13 @@ int sc_main(int argc, char **argv) {
 	i2c.plic = &plic;
 	
 	DS1307* ds1307 = new DS1307();
+<<<<<<< HEAD
 	i2c.register_device(0x68, ds1307);
+=======
+	//DS1307* ds1307_2 = new DS1307();
+	i2c.register_device(0x68, ds1307);
+	//i2c.register_device(0x30, ds1307_2);
+>>>>>>> d2321ca (fixed i2cdetect not working and no stop signal sent)
 
 	for (size_t i = 0; i < NUM_CORES; i++) {
 		// switch for printing instructions

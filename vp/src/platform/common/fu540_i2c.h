@@ -24,7 +24,8 @@ private:
     uint32_t reg_prer_hi = 0xFF;
     uint32_t reg_ctr = 0x00;
     uint32_t reg_txr = 0x00;
-    uint32_t reg_rxr = 0x00;
+    uint32_t reg_rxr = 0x00; 
+    uint32_t reg_rxr_txr = 0x00;
     uint32_t reg_sr = 0x00;
 
     bool sendACK = false;
@@ -44,8 +45,12 @@ private:
         // Control register
         REG_CTR = 0x08,
         // Transmit & Receive register
+        REG_TXR = 0x0C,
+        REG_RXR = 0x0C, 
         REG_TXR_RXR = 0x0C,
         // Command & Status register
+        REG_CR = 0x10,
+        REG_SR = 0x10,
         REG_CR_SR = 0x10,
     };
 

@@ -1,4 +1,3 @@
-
 #include "fu540_i2c.h"
 
 FU540_I2C::FU540_I2C(const sc_core::sc_module_name &name, const int interrupt)
@@ -9,7 +8,7 @@ FU540_I2C::FU540_I2C(const sc_core::sc_module_name &name, const int interrupt)
             {REG_PRER_LO, &reg_prer_lo},
             {REG_PRER_HI, &reg_prer_hi},
             {REG_CTR, &reg_ctr},
-            {REG_TXR_RXR, &reg_rxr},
+            {REG_TXR_RXR, &reg_rxr_txr},
             {REG_CR_SR, &reg_sr},
         })
         .register_handler(this, &FU540_I2C::register_update_callback);
@@ -20,66 +19,103 @@ void FU540_I2C::transport(tlm::tlm_generic_payload &trans, sc_core::sc_time &del
 }
 
 void FU540_I2C::register_update_callback(const vp::map::register_access_t &r) {
-    if(r.write) {
+    if (r.write) {
         switch (r.addr) {
-        case REG_PRER_LO: 
-        case REG_PRER_HI:
-            r.fn();
-            break;
-        case REG_CTR:
-            r.fn();
-            enabled = reg_ctr & I2C_CTR_EN;
-            interrupt_enabled = reg_ctr & I2C_CTR_IEN;
-            break;
-        case REG_TXR_RXR:
-            //r.vptr = &reg_txr;
-            reg_txr = r.nv;
-            //r.fn();
-            break;
-        case REG_CR_SR:
-            if (!enabled) {
-                return;
-            }
-            if (r.nv & I2C_CR_IACK) {
-                interruptFlag = false;
-            } 
-            if (r.nv & I2C_CR_WR) {
-                //TODO: Flag is immideatly cleared
-                transferInProgress = true;
-                if (r.nv & I2C_CR_STA) {
-                    rxack = !I2C_IF::start((reg_txr & I2C_TX_ADDR) >> 1);
-                } else {
-                    uint8_t data = reg_txr;
-                    rxack = !I2C_IF::write(data);
+            case REG_PRER_LO: // Clock Prescale register lo-byte
+                r.fn(); 
+                break;
+            case REG_PRER_HI: // Clock Prescale register hi-byte
+                r.fn(); 
+                break;
+            case REG_CTR: // Control register
+                r.fn(); 
+                enabled = (reg_ctr & I2C_CTR_EN); // i2c core enable bit
+                interrupt_enabled = (reg_ctr & I2C_CTR_IEN); // i2c interrupt enable bit
+                break;
+            case REG_TXR: // Transmit register
+                if (enabled) {
+                    //r.fn();
+                    reg_txr = r.nv; 
                 }
-                transferInProgress = false;
-                triggerInterrupt();
-                if (r.nv & I2C_CR_STO) {
-                    I2C_IF::stop();
-                }
-            } else if (r.nv & I2C_CR_RD) {
-                if (r.nv & I2C_CR_STA) {
-                    //TODO: Error??
-                } else {
-                    transferInProgress = true;
-                    uint8_t data;
-                    I2C_IF::read(data);
-                    reg_rxr = data;
-                    transferInProgress = false;
-                    triggerInterrupt();
-                    if (r.nv & I2C_CR_STO) {
+                break;
+            case REG_CR: // Command register
+                if (enabled) {
+                    uint8_t command = r.nv;
+                    
+                    // interrupt acknowledge
+                    if (command & I2C_CR_IACK) {
+                        interruptFlag = false;
+                    }
+                    
+                    // Process I2C commands
+                    if (command & (I2C_CR_STA | I2C_CR_WR | I2C_CR_RD)) {
+                        transferInProgress = true;
+                        reg_rxr_txr = reg_txr; // Store transmit register value for processing
+                        
+                        if (command & I2C_CR_STA) {
+                            // START condition
+                            busy = true;
+                            arbitrationLost = false;
+                            
+                            // get adress 
+                            uint8_t addr = (reg_txr & I2C_TX_ADDR) >> 1;
+                            //bool read_mode = reg_rxr_txr & 1;
+                            
+                            // Attempt to start communication with device
+                            bool ack = I2C_IF::start(addr);
+                            rxack = !ack; // RxACK is inverted (1 = NACK, 0 = ACK)
+                            
+                            // If no device responds, clear busy immediately
+                            if (!ack) {
+                                //debug printing
+                                //printf("FU540_I2C: No device responded to START condition\n");
+                                busy = false;
+                            }
+                            
+                        } else if (command & I2C_CR_WR) { // Write operation
+                            bool ack = I2C_IF::write(reg_rxr_txr);
+                            rxack = !ack;
+                            
+                        } else if (command & I2C_CR_RD) { // read operation
+                            uint8_t data;
+                            bool ack = I2C_IF::read(data);
+                            if (ack) {
+                                reg_rxr = data; 
+                                reg_rxr_txr = reg_rxr;
+                            }
+                            rxack = !ack;
+                            
+                            // Send ACK/NACK based on ACK bit in command
+                            sendACK = !(command & I2C_CR_ACK);
+                        }
+                        
+                        /*
+                        STOP condition is never reached if here? 
+                        if (command & I2C_CR_STO) {
+                            // STOP condition
+                            //debug printing
+                            printf("FU540_I2C: STOP condition received\n");
+                            I2C_IF::stop();
+                            busy = false;
+                        }
+                        */
+
+                        transferInProgress = false;
+                        triggerInterrupt();
+                        //TODO: clear STA, STO, RD, WR and IACK bits from CR? 
+                    }
+
+                    if (enabled && (command & I2C_CR_STO)) { // STOP condition
+                            //debug printing
+                            //printf("FU540_I2C: STOP condition received\n");
                         I2C_IF::stop();
+                        busy = false;
                     }
                 }
-            }
-            sendACK = ~(r.nv & I2C_CR_ACK); //TODO: what to do with ACK
-            break;
-        default:
-            //TODO: possible error
-            break;
+                break;
         }
     } else if (r.read) {
-        reg_sr = getStatusRegister(); //update status register before possible read
+        reg_sr = getStatusRegister();
         r.fn();
     }
 }
@@ -98,5 +134,7 @@ uint8_t FU540_I2C::getStatusRegister() {
     if (arbitrationLost)    status |= I2C_SR_AL;
     if (transferInProgress) status |= I2C_SR_TIP;
     if (interruptFlag)      status |= I2C_SR_IF;
+
     return status;
 }
+

@@ -32,7 +32,7 @@ DS1307::DS1307() {
 }
 
 bool DS1307::start() {
-    //printf("START SIGNAL RECEIVED \n");
+    //("START SIGNAL RECEIVED \n");
     start_signal = START_RECEIVED;
     long long diff;
     // load current diff time and date from file and update registers
@@ -42,6 +42,7 @@ bool DS1307::start() {
         uint8_t CH_bit = (registers[DS1307_ADRESS_SECONDS] & DS1307_BIT_CH_MASK) >> 7;
         update_date_time(diff, mode_12h, CH_bit);
     }
+    //std::cout << "DS1307: start() called" << std::endl;
     return true;
 }
 
@@ -58,6 +59,12 @@ bool DS1307::write(uint8_t data) {
         //printf("NO WRITE OF DATA %d \n",data);
         return false;
     }
+
+    save_state(registers, DS1307_STATE_FILE); // save state here or at stop?
+    struct tm set_time = get_date_time();
+    struct tm  local_time = get_local_date_time();
+    long long diff = diff_date_time(set_time, local_time);
+    save_diff(diff, DIFF_DATE_TIME_FILE);
     return true;
 }
 
