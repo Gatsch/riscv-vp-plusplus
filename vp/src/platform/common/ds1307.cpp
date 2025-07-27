@@ -6,7 +6,7 @@ DS1307::DS1307() {
     start_signal = NOT_BUSY;
 
     if(!load_state(registers, DS1307_STATE_FILE)) {
-        printf("Generating file %s\n", DS1307_STATE_FILE);
+        //printf("Generating file %s\n", DS1307_STATE_FILE);
         for (int i = 0; i < 64; i++) {
             registers[i] = 0;
         }
@@ -18,8 +18,7 @@ DS1307::DS1307() {
     //reset_rtc(); // ONLY FOR TESTING REMOVE FOR FINAL VERSION
     if (!CH_bit) { // if CH bit is not set clock is not stopped
         if( !load_diff(diff, DIFF_DATE_TIME_FILE)){
-            diff = 0;
-            printf("Generating file %s\n", DIFF_DATE_TIME_FILE);
+            diff = 0; // diff 0 = current UTC time 
             save_diff(diff, DIFF_DATE_TIME_FILE);
         }
         update_date_time(diff, mode_12h, CH_bit);
@@ -32,7 +31,7 @@ DS1307::DS1307() {
 }
 
 bool DS1307::start() {
-    //("START SIGNAL RECEIVED \n");
+    //printf("START SIGNAL RECEIVED \n");
     start_signal = START_RECEIVED;
     long long diff;
     // load current diff time and date from file and update registers
@@ -107,21 +106,21 @@ struct tm DS1307::get_date_time() {
         current.tm_hour = (registers[DS1307_ADRESS_HOURS] & 0x0F) + 10 * ((registers[DS1307_ADRESS_HOURS] & 0x30) >> 4);
     }
     // use correct time format according to struct tm specification
-    current.tm_wday = ((registers[DS1307_ADRESS_DAY] & 0x07) == 7) ? 0 : (registers[DS1307_ADRESS_DAY] & 0x07) == 7;
+    current.tm_wday = ((registers[DS1307_ADRESS_DAY] & 0x07) == 7) ? 0 : (registers[DS1307_ADRESS_DAY] & 0x07);
     current.tm_mday = (registers[DS1307_ADRESS_DATE] & 0x0F) + 10 * ((registers[DS1307_ADRESS_DATE] & 0x30) >> 4);
     current.tm_mon = (registers[DS1307_ADRESS_MONTH] & 0x0F) + 10 * ((registers[DS1307_ADRESS_MONTH] & 0x10) >> 4) - 1;
     current.tm_year = (registers[DS1307_ADRESS_YEAR] & 0x0F) + 10 * ((registers[DS1307_ADRESS_YEAR] & 0xF0) >> 4) + 100;
-
+    
     return current;
 }
 
 std::time_t DS1307::convert_tm_to_seconds(struct tm date_time) {
     // Convert tm to time_t (seconds since epoch)
-    std::time_t time = mktime(&date_time); //timegm(&date_time);
-    // Convert time_t to system_clock::time_point
+    std::time_t time = timegm(&date_time); 
     return time;
 }
 
+// ERROR with diff calculation when saving diff without custom write at the beginning each time hwclock is called jump by 1 hour
 long long DS1307::diff_date_time(struct tm t1, struct tm t2) {
     // Convert both tm structures to time_points
     std::time_t time1 = convert_tm_to_seconds(t1);
@@ -182,7 +181,7 @@ void DS1307::update_date_time(long long diff, uint8_t mode_12h, uint8_t CH_bit) 
     std::time_t new_datetime = current + diff;
 
     struct tm ds1307_new_reg_vals;
-    memcpy(&ds1307_new_reg_vals, localtime(&new_datetime), sizeof (struct tm));
+    memcpy(&ds1307_new_reg_vals, gmtime(&new_datetime), sizeof (struct tm));
 
     // adjust values to fit format of ds1307
     if (ds1307_new_reg_vals.tm_wday == 0) {ds1307_new_reg_vals.tm_wday = 7;}
@@ -194,10 +193,14 @@ void DS1307::update_date_time(long long diff, uint8_t mode_12h, uint8_t CH_bit) 
     if (mode_12h) {
         uint8_t pm = 0;
         uint8_t bit_mask_10h = 0x30;
-        if (ds1307_new_reg_vals.tm_hour > 12) {
+        if (ds1307_new_reg_vals.tm_hour >= 12) {
             pm = 1;
-            ds1307_new_reg_vals.tm_hour -= 12;
+            if (ds1307_new_reg_vals.tm_hour > 12) {
+                ds1307_new_reg_vals.tm_hour -= 12;
+            }
             bit_mask_10h = 0x10; // adjust 10h register bit mask
+        } else if (ds1307_new_reg_vals.tm_hour == 0) {
+            ds1307_new_reg_vals.tm_hour = 12; // set 12h for midnight
         }
         registers[DS1307_ADRESS_HOURS] =   (0 << 7) + (1 << 6) + (pm << 5) +
                                            (((ds1307_new_reg_vals.tm_hour / 10) << 4) & bit_mask_10h) + (ds1307_new_reg_vals.tm_hour % 10);
@@ -214,7 +217,7 @@ void DS1307::update_date_time(long long diff, uint8_t mode_12h, uint8_t CH_bit) 
 struct tm DS1307::get_local_date_time() {
     time_t now = time(nullptr);
     struct tm  current_date_time;
-    current_date_time = *localtime(&now);
+    current_date_time = *gmtime(&now);
     return current_date_time;
 }
 
