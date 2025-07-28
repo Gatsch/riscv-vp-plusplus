@@ -4,7 +4,6 @@
 DS1307::DS1307() {
     reg_pointer = 0;
     start_signal = AWAITING_START;
-    printf("DS1307: Initializing RTC\n");
     if(!load_state(registers, DS1307_STATE_FILE)) {
         //printf("Generating file %s\n", DS1307_STATE_FILE);
         for (int i = 0; i < 64; i++) {
@@ -80,6 +79,7 @@ bool DS1307::read(uint8_t &data) {
 }
 
 bool DS1307::stop() {
+    printf("DS1307: Stopping RTC\n");
     start_signal = AWAITING_START;
     // update time diff
     struct tm set_time = get_date_time();
