@@ -26,9 +26,9 @@
 #define DS1307_BIT_PM_AM_MASK 0x20
 #define DS1307_BIT_CH_MASK 0x80
 
-#define NOT_BUSY 0
+#define AWAITING_START 0
 #define START_RECEIVED 1
-#define BUSY 2
+#define DATA_PHASE 2
 
 #define DIFF_DATE_TIME_FILE "ds_1307_date_time_diff"
 #define DATE_TIME_HALT_VAL "ds_1307_date_time_halt"

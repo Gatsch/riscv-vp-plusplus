@@ -3,8 +3,8 @@
 
 DS1307::DS1307() {
     reg_pointer = 0;
-    start_signal = NOT_BUSY;
-
+    start_signal = AWAITING_START;
+    printf("DS1307: Initializing RTC\n");
     if(!load_state(registers, DS1307_STATE_FILE)) {
         //printf("Generating file %s\n", DS1307_STATE_FILE);
         for (int i = 0; i < 64; i++) {
@@ -31,7 +31,6 @@ DS1307::DS1307() {
 }
 
 bool DS1307::start() {
-    //printf("START SIGNAL RECEIVED \n");
     start_signal = START_RECEIVED;
     long long diff;
     // load current diff time and date from file and update registers
@@ -41,21 +40,21 @@ bool DS1307::start() {
         uint8_t CH_bit = (registers[DS1307_ADRESS_SECONDS] & DS1307_BIT_CH_MASK) >> 7;
         update_date_time(diff, mode_12h, CH_bit);
     }
-    //std::cout << "DS1307: start() called" << std::endl;
     return true;
 }
 
 bool DS1307::write(uint8_t data) {
     if (start_signal == START_RECEIVED) {
-    	//printf("SET REG POINTER: %d \n", data);
         reg_pointer = data;
-        start_signal = BUSY;
-    } else if (start_signal == BUSY) { // maybe -1 and -1 when writing month and day for simulation in rv64 to work?
-        //printf("Write to %d with data: %d \n",reg_pointer, data);
+        start_signal = DATA_PHASE;
+    } else if (start_signal == DATA_PHASE) { // maybe -1 and -1 when writing month and day for simulation in rv64 to work?
         registers[reg_pointer] = data;
-        reg_pointer++;
+        if (reg_pointer == DS1307_ADRESS_RAM_END) {
+            reg_pointer = 0; // reset reg_pointer to 0 after pointer reaches RAM end
+        } else {
+            reg_pointer++;
+        } 
     } else {
-        //printf("NO WRITE OF DATA %d \n",data);
         return false;
     }
 
@@ -70,16 +69,18 @@ bool DS1307::write(uint8_t data) {
 bool DS1307::read(uint8_t &data) {
     if (start_signal == START_RECEIVED) {
         data = registers[reg_pointer];
-        //printf("READ FROM %d DATA: %d \n",reg_pointer, data);
-        reg_pointer++;
+        if (reg_pointer == DS1307_ADRESS_RAM_END) {
+            reg_pointer = 0; // reset reg_pointer to 0 after writing to RAM
+        } else {
+            reg_pointer++;
+        } 
         return true;
     }
     return false;
 }
 
 bool DS1307::stop() {
-    //printf("STOP SIGNAL RECEIVED \n");
-    start_signal = NOT_BUSY;
+    start_signal = AWAITING_START;
     // update time diff
     struct tm set_time = get_date_time();
     struct tm  local_time = get_local_date_time();
@@ -120,7 +121,6 @@ std::time_t DS1307::convert_tm_to_seconds(struct tm date_time) {
     return time;
 }
 
-// ERROR with diff calculation when saving diff without custom write at the beginning each time hwclock is called jump by 1 hour
 long long DS1307::diff_date_time(struct tm t1, struct tm t2) {
     // Convert both tm structures to time_points
     std::time_t time1 = convert_tm_to_seconds(t1);
@@ -132,7 +132,7 @@ long long DS1307::diff_date_time(struct tm t1, struct tm t2) {
 bool DS1307::save_diff(long long& diff, const char* filename) {
     std::ofstream outFile(filename, std::ios::binary);
     if (!outFile) {
-        std::cerr << "Error opening file for writing!" << std::endl;
+        //std::cerr << "Error opening file for writing!" << std::endl;
         return false;
     }
     outFile.write(reinterpret_cast<const char*>(&diff), sizeof(long long));
@@ -143,7 +143,7 @@ bool DS1307::save_diff(long long& diff, const char* filename) {
 bool DS1307::load_diff(long long& diff, const char* filename) {
     std::ifstream inFile(filename, std::ios::binary);
     if (!inFile) {
-        std::cerr << "Error opening file for reading!" << std::endl;
+        //std::cerr << "Error opening file for reading!" << std::endl;
         return false;
     }
     inFile.read(reinterpret_cast<char*>(&diff), sizeof(long long));
@@ -155,7 +155,7 @@ bool DS1307::load_diff(long long& diff, const char* filename) {
 bool DS1307::save_state(uint8_t* state, const char* filename) {
     std::ofstream outFile(filename, std::ios::binary);
     if (!outFile) {
-        std::cerr << "Error opening file for writing!" << std::endl;
+        //std::cerr << "Error opening file for writing!" << std::endl;
         return false;
     }
     outFile.write(reinterpret_cast<const char*>(state), DS1307_SIZE_REG_RAM*sizeof(uint8_t));
@@ -166,7 +166,7 @@ bool DS1307::save_state(uint8_t* state, const char* filename) {
 bool DS1307::load_state(uint8_t* state, const char* filename) {
     std::ifstream inFile(filename, std::ios::binary);
     if (!inFile) {
-        std::cerr << "Error opening file for reading!" << std::endl;
+        //std::cerr << "Error opening file for reading!" << std::endl;
         return false;
     }
 
@@ -211,7 +211,6 @@ void DS1307::update_date_time(long long diff, uint8_t mode_12h, uint8_t CH_bit) 
     registers[DS1307_ADRESS_DATE] = (0 << 7) + (((ds1307_new_reg_vals.tm_mday / 10) << 4) & 0x30) + (ds1307_new_reg_vals.tm_mday % 10);
     registers[DS1307_ADRESS_MONTH] = (0 << 7) + ((((ds1307_new_reg_vals.tm_mon) / 10) << 4) & 0x10) + ((ds1307_new_reg_vals.tm_mon) % 10);
     registers[DS1307_ADRESS_YEAR] = ((((ds1307_new_reg_vals.tm_year) / 10) << 4) & 0xF0) + ((ds1307_new_reg_vals.tm_year) % 10);
-    return;
 }
 
 struct tm DS1307::get_local_date_time() {
