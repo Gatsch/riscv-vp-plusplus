@@ -79,7 +79,6 @@ bool DS1307::read(uint8_t &data) {
 }
 
 bool DS1307::stop() {
-    printf("DS1307: Stopping RTC\n");
     start_signal = AWAITING_START;
     // update time diff
     struct tm set_time = get_date_time();
