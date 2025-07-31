@@ -38,6 +38,7 @@
 #include "util/vncserver.h"
 #include "platform/common/fu540_i2c.h"
 #include "platform/common/ds1307.h"
+#include "platform/common/dummy_i2c.h"
 
 /* if not defined externally fall back to TARGET_RV64 */
 #if !defined(TARGET_RV32) && !defined(TARGET_RV64)
@@ -359,8 +360,15 @@ int sc_main(int argc, char **argv) {
 	
 	DS1307* ds1307 = new DS1307();
 	//DS1307* ds1307_2 = new DS1307();
+	DummyI2C* dummy_i2c_0 = new DummyI2C();
+	DummyI2C* dummy_i2c_1 = new DummyI2C();
+	DummyI2C* dummy_i2c_2 = new DummyI2C();
+
 	i2c.register_device(0x68, ds1307);
 	//i2c.register_device(0x30, ds1307_2);
+	i2c.register_device(0x50, dummy_i2c_0);
+	i2c.register_device(0x51, dummy_i2c_1);
+	i2c.register_device(0x52, dummy_i2c_2);
 
 	for (size_t i = 0; i < NUM_CORES; i++) {
 		// switch for printing instructions

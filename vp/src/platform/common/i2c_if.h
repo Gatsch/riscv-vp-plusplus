@@ -46,45 +46,32 @@ class I2C_IF {
     bool start(uint8_t addr) {
         device = get_device(addr);
         if (device == nullptr) {
-            //std::cerr << "I2C: WARNING: Device not registered" << addr << std::endl;
             return false;
         }
         bool ack = device->start();
-        if (!ack) {
-            //std::cerr << "I2C: WARNING: Device not responding" << addr << std::endl;
-        }
         return ack;
     }
 
     bool write(uint8_t data) {
         bool ack = false;
         if (device == nullptr) {
-            //std::cerr << "I2C: WARNING: No device addressed" << std::endl;
             return false;
         }
         ack = device->write(data);
-        if (!ack) {
-           // std::cerr << "I2C: WARNING: Write failed" << std::endl;
-        }
 		return ack;
     }
 
     bool read(uint8_t &data) {
         bool ack;
         if (device == nullptr) {
-            //std::cerr << "I2C: WARNING: No device addressed" << std::endl;
             return false;
         }
         ack = device->read(data);
-        if (!ack) {
-            //std::cerr << "I2C: WARNING: Read failed" << std::endl;
-        }
         return ack;
     }
     
     void stop() {
         if (device == nullptr) {
-            //std::cerr << "I2C: WARNING: No device addressed" << std::endl;
             return;
         }
         device->stop();
