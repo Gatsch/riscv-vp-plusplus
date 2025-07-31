@@ -16,14 +16,14 @@ DS1307::DS1307() {
     uint8_t CH_bit = (registers[DS1307_ADRESS_SECONDS] & DS1307_BIT_CH_MASK) >> 7;
     //reset_rtc(); // ONLY FOR TESTING REMOVE FOR FINAL VERSION
     if (!CH_bit) { // if CH bit is not set clock is not stopped
-        if( !load_diff(diff, DIFF_DATE_TIME_FILE)){
+        if (!load_diff(diff, DIFF_DATE_TIME_FILE)){
             diff = 0; // diff 0 = current UTC time 
             save_diff(diff, DIFF_DATE_TIME_FILE);
         }
         update_date_time(diff, mode_12h, CH_bit);
 
     } else { // time stopped calculate current diff and set CH bit to 1
-        diff = diff_date_time(get_date_time(), get_local_date_time());
+        diff = diff_date_time(get_date_time(), get_utc_date_time());
         save_diff(diff, DIFF_DATE_TIME_FILE);
         update_date_time(diff, mode_12h, CH_bit);
     }
@@ -59,7 +59,7 @@ bool DS1307::write(uint8_t data) {
 
     save_state(registers, DS1307_STATE_FILE); // save state here or at stop?
     struct tm set_time = get_date_time();
-    struct tm  local_time = get_local_date_time();
+    struct tm  local_time = get_utc_date_time();
     long long diff = diff_date_time(set_time, local_time);
     save_diff(diff, DIFF_DATE_TIME_FILE);
     return true;
@@ -69,7 +69,7 @@ bool DS1307::read(uint8_t &data) {
     if (start_signal == START_RECEIVED) {
         data = registers[reg_pointer];
         if (reg_pointer == DS1307_ADRESS_RAM_END) {
-            reg_pointer = 0; // reset reg_pointer to 0 after writing to RAM
+            reg_pointer = 0; // reset reg_pointer to 0 after pointer reaches RAM end 
         } else {
             reg_pointer++;
         } 
@@ -82,7 +82,7 @@ bool DS1307::stop() {
     start_signal = AWAITING_START;
     // update time diff
     struct tm set_time = get_date_time();
-    struct tm  local_time = get_local_date_time();
+    struct tm  local_time = get_utc_date_time();
     long long diff = diff_date_time(set_time, local_time);
     // save current diff, registers, and ram
     save_diff(diff, DIFF_DATE_TIME_FILE);
@@ -176,7 +176,7 @@ bool DS1307::load_state(uint8_t* state, const char* filename) {
 /* update time and date saved in registers according to set time diff and 12 or 24h mode */
 void DS1307::update_date_time(long long diff, uint8_t mode_12h, uint8_t CH_bit) {
     //struct tm current = get_date_time();
-    std::time_t current = DS1307::convert_tm_to_seconds(get_local_date_time());
+    std::time_t current = DS1307::convert_tm_to_seconds(get_utc_date_time());
     std::time_t new_datetime = current + diff;
 
     struct tm ds1307_new_reg_vals;
@@ -212,7 +212,7 @@ void DS1307::update_date_time(long long diff, uint8_t mode_12h, uint8_t CH_bit) 
     registers[DS1307_ADRESS_YEAR] = ((((ds1307_new_reg_vals.tm_year) / 10) << 4) & 0xF0) + ((ds1307_new_reg_vals.tm_year) % 10);
 }
 
-struct tm DS1307::get_local_date_time() {
+struct tm DS1307::get_utc_date_time() {
     time_t now = time(nullptr);
     struct tm  current_date_time;
     current_date_time = *gmtime(&now);
