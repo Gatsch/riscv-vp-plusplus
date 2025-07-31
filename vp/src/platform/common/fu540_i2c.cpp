@@ -67,8 +67,6 @@ void FU540_I2C::register_update_callback(const vp::map::register_access_t &r) {
                             
                             // If no device responds, clear busy immediately
                             if (!ack) {
-                                //debug printing
-                                //printf("FU540_I2C: No device responded to START condition\n");
                                 busy = false;
                             }
                             
@@ -89,25 +87,12 @@ void FU540_I2C::register_update_callback(const vp::map::register_access_t &r) {
                             sendACK = !(command & I2C_CR_ACK);
                         }
                         
-                        /*
-                        STOP condition is never reached if here? 
-                        if (command & I2C_CR_STO) {
-                            // STOP condition
-                            //debug printing
-                            printf("FU540_I2C: STOP condition received\n");
-                            I2C_IF::stop();
-                            busy = false;
-                        }
-                        */
-
                         transferInProgress = false;
                         triggerInterrupt();
-                        //TODO: clear STA, STO, RD, WR and IACK bits from CR? 
+     
                     }
 
                     if (enabled && (command & I2C_CR_STO)) { // STOP condition
-                            //debug printing
-                            //printf("FU540_I2C: STOP condition received\n");
                         I2C_IF::stop();
                         busy = false;
                     }
