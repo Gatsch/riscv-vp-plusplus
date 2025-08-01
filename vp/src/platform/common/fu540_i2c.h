@@ -25,7 +25,6 @@ private:
     uint32_t reg_ctr = 0x00;
     uint32_t reg_txr = 0x00;
     uint32_t reg_rxr = 0x00; 
-    uint32_t reg_rxr_txr = 0x00;
     uint32_t reg_sr = 0x00;
 
     bool sendACK = false;

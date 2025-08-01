@@ -8,7 +8,7 @@ FU540_I2C::FU540_I2C(const sc_core::sc_module_name &name, const int interrupt)
             {REG_PRER_LO, &reg_prer_lo},
             {REG_PRER_HI, &reg_prer_hi},
             {REG_CTR, &reg_ctr},
-            {REG_TXR_RXR, &reg_rxr_txr},
+            {REG_TXR_RXR, &reg_rxr},
             {REG_CR_SR, &reg_sr},
         })
         .register_handler(this, &FU540_I2C::register_update_callback);
@@ -34,7 +34,6 @@ void FU540_I2C::register_update_callback(const vp::map::register_access_t &r) {
                 break;
             case REG_TXR: // Transmit register
                 if (enabled) {
-                    //r.fn();
                     reg_txr = r.nv; 
                 }
                 break;
@@ -50,7 +49,6 @@ void FU540_I2C::register_update_callback(const vp::map::register_access_t &r) {
                     // Process I2C commands
                     if (command & (I2C_CR_STA | I2C_CR_WR | I2C_CR_RD)) {
                         transferInProgress = true;
-                        reg_rxr_txr = reg_txr; // Store transmit register value for processing
                         
                         if (command & I2C_CR_STA) {
                             // START condition
@@ -59,7 +57,6 @@ void FU540_I2C::register_update_callback(const vp::map::register_access_t &r) {
                             
                             // get adress 
                             uint8_t addr = (reg_txr & I2C_TX_ADDR) >> 1;
-                            //bool read_mode = reg_rxr_txr & 1;
                             
                             // Attempt to start communication with device
                             bool ack = I2C_IF::start(addr);
@@ -71,15 +68,14 @@ void FU540_I2C::register_update_callback(const vp::map::register_access_t &r) {
                             }
                             
                         } else if (command & I2C_CR_WR) { // Write operation
-                            bool ack = I2C_IF::write(reg_rxr_txr);
+                            bool ack = I2C_IF::write(reg_txr);
                             rxack = !ack;
                             
                         } else if (command & I2C_CR_RD) { // read operation
                             uint8_t data;
                             bool ack = I2C_IF::read(data);
                             if (ack) {
-                                reg_rxr = data; 
-                                reg_rxr_txr = reg_rxr;
+                                reg_rxr = data;
                             }
                             rxack = !ack;
                             
