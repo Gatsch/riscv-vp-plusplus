@@ -5,7 +5,6 @@ DS1307::DS1307() {
     reg_pointer = 0;
     start_signal = AWAITING_START;
     if(!load_state(registers, DS1307_STATE_FILE)) {
-        //printf("Generating file %s\n", DS1307_STATE_FILE);
         for (int i = 0; i < 64; i++) {
             registers[i] = 0;
         }
@@ -14,7 +13,6 @@ DS1307::DS1307() {
     long long diff;
     uint8_t mode_12h = (registers[DS1307_ADRESS_HOURS] & DS1307_BIT_12_24_MASK) >> 6;
     uint8_t CH_bit = (registers[DS1307_ADRESS_SECONDS] & DS1307_BIT_CH_MASK) >> 7;
-    //reset_rtc(); // ONLY FOR TESTING REMOVE FOR FINAL VERSION
     if (!CH_bit) { // if CH bit is not set clock is not stopped
         if (!load_diff(diff, DIFF_DATE_TIME_FILE)){
             diff = 0; // diff 0 = current UTC time 
@@ -46,7 +44,7 @@ bool DS1307::write(uint8_t data) {
     if (start_signal == START_RECEIVED) {
         reg_pointer = data;
         start_signal = DATA_PHASE;
-    } else if (start_signal == DATA_PHASE) { // maybe -1 and -1 when writing month and day for simulation in rv64 to work?
+    } else if (start_signal == DATA_PHASE) {
         registers[reg_pointer] = data;
         if (reg_pointer == DS1307_ADRESS_RAM_END) {
             reg_pointer = 0; // reset reg_pointer to 0 after pointer reaches RAM end
@@ -131,7 +129,6 @@ long long DS1307::diff_date_time(struct tm t1, struct tm t2) {
 bool DS1307::save_diff(long long& diff, const char* filename) {
     std::ofstream outFile(filename, std::ios::binary);
     if (!outFile) {
-        //std::cerr << "Error opening file for writing!" << std::endl;
         return false;
     }
     outFile.write(reinterpret_cast<const char*>(&diff), sizeof(long long));
@@ -142,7 +139,6 @@ bool DS1307::save_diff(long long& diff, const char* filename) {
 bool DS1307::load_diff(long long& diff, const char* filename) {
     std::ifstream inFile(filename, std::ios::binary);
     if (!inFile) {
-        //std::cerr << "Error opening file for reading!" << std::endl;
         return false;
     }
     inFile.read(reinterpret_cast<char*>(&diff), sizeof(long long));
@@ -154,7 +150,6 @@ bool DS1307::load_diff(long long& diff, const char* filename) {
 bool DS1307::save_state(uint8_t* state, const char* filename) {
     std::ofstream outFile(filename, std::ios::binary);
     if (!outFile) {
-        //std::cerr << "Error opening file for writing!" << std::endl;
         return false;
     }
     outFile.write(reinterpret_cast<const char*>(state), DS1307_SIZE_REG_RAM*sizeof(uint8_t));
@@ -165,7 +160,6 @@ bool DS1307::save_state(uint8_t* state, const char* filename) {
 bool DS1307::load_state(uint8_t* state, const char* filename) {
     std::ifstream inFile(filename, std::ios::binary);
     if (!inFile) {
-        //std::cerr << "Error opening file for reading!" << std::endl;
         return false;
     }
 
